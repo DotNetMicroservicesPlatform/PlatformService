@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: platform-deployment
+spec:
+  selector:
+    matchLabels:
+      app: platform
+  template:
+    metadata:
+      labels:
+        app: platform
+    spec:
+      containers:
+      - name: platform
+        image: container-registry.docker.local:5000/platform.service:0.0.18
+        env:
+          - name: CommandServiceUrl
+            value: http://command-cluster-ip-service/api/platforms
+          - name: SqlDbSettings__Server
+            value: mssql-clusterip-service
+          - name: SqlDbSettings__Port
+            value: "1433"
+          - name: SqlDbSettings__DbName
+            value: platformsdb
+          - name: SqlDbSettings__User
+            value: sa
+          - name: SqlDbSettings__Password
+            valueFrom:
+              secretKeyRef:
+                name: mssql
+                key: SA_PASSWORD
+          - name: RabbitMqSettings__Host
+            value: rabbitmq-clusterip-service
+          - name: Kestrel__Endpoints__Grpc__Protocols
+            value: Http2
+          - name: Kestrel__Endpoints__Grpc__Url
+            value: http://platform-cluster-ip-service:666
+          - name: Kestrel__Endpoints__Webapi__Protocols
+            value: Http1
+          - name: Kestrel__Endpoints__Webapi__Url
+            value: http://platform-cluster-ip-service:80         
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 5231
